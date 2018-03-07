@@ -54,12 +54,12 @@ def get_parameters(opt):
     """Load json parameters"""
     defaults = []
 
-    dir = os.path.relpath(os.path.dirname(opt.template), opt.templates)
-    while dir:
-        default = os.path.join(opt.templates, dir, 'defaults.json')
+    default_template_folder = os.path.relpath(os.path.dirname(opt.template), opt.templates)
+    while default_template_folder:
+        default = os.path.join(opt.templates, default_template_folder, 'defaults.json')
         if os.path.isfile(default):
             defaults.append(default)
-        dir = os.path.dirname(dir)
+        default_template_folder = os.path.dirname(default_template_folder)
 
     default = os.path.join(opt.templates, 'defaults.json')
     if os.path.isfile(default):
@@ -86,12 +86,13 @@ def main():
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath=os.path.dirname(opt.template)),
                              trim_blocks=True,
                              lstrip_blocks=True)
-    print('tmpl',opt.template)
     template = env.get_template(os.path.basename(opt.template))
 
     for config_parameter in config_parameters:
-        config_parameter.update(config_defauts)
-        result = template.render(config_parameter)
+        full_config_parameter = {}
+        full_config_parameter.update(config_defauts)
+        full_config_parameter.update(config_parameter)
+        result = template.render(full_config_parameter)
         f = open(os.path.join(opt.output, config_parameter['hostname'] + ".config"), "w")
         f.write(result)
         f.close()
