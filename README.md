@@ -19,11 +19,12 @@ root/
    ./templates/
              ./folder1/
              ./defaults.json
-             ./device1.j2
-                    ./folder2/
-                    ./defaults.json
-                    ./device2.j2
-                    ./device2.json
+                     ./defaults.json
+                     ./device1.j2
+                     ./folder2/
+                             ./defaults.json
+                             ./device2.j2
+                             ./device2.json
    ./json/
         ./data1.json
         ./data2.json
