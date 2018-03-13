@@ -1,0 +1,214 @@
+{% set clients = namespace(count = ports["clients"]|sum(attribute="count"), vlan = vlans["clients"]) %}
+{% set clients.first = clients.vlan %}
+{% set clients.last = clients.vlan + clients.count - 1 %}
+{% set clients.list = range(clients.vlan, clients.last + 1) %}
+!
+configure terminal
+!
+hostname {{ hostname }}
+!
+ip ssh server
+!
+ip domain name {{ domain }}
+ip name-server{% for dns in servers["dns"] %} {{ dns['addr'] }}{% endfor %} {{ ip["management"]["gateway"] }}
+!
+{# AAA #}
+aaa authentication enable default enable
+!
+{# TIME #}
+clock timezone {{ timezone }}
+clock source sntp
+sntp unicast client enable
+sntp unicast client poll
+sntp server {{ ip["management"]["gateway"] }} poll
+!
+{# LOGGING #}
+{% for log in servers["log"] %}
+logging host {{ log['addr'] }} description {{ log['descr'] }}
+{% endfor %}
+logging console warnings
+!
+{# SNMP #}
+ip access-list extended snmp_ro
+{% for permit in snmp["ro"]["permit"] %}
+ permit ip any any {{ permit }} {{ ip["management"]["addr"] }} 0.0.0.0
+{% endfor %}
+exit
+ip access-list extended snmp_rw
+{% for permit in snmp["rw"]["permit"] %}
+ permit ip any any {{ permit }} {{ ip["management"]["addr"] }} 0.0.0.0
+{% endfor %}
+exit
+snmp-server server
+snmp-server community {{ snmp["ro"]["community"] }} ro use-acl snmp_ro
+snmp-server community {{ snmp["rw"]["community"] }} rw use-acl snmp_rw
+!
+{# DEFAULTS #}
+{% for client in ports["clients"] %}
+default interface range {{ client["device"] }}/1-{{ client["count"] }}
+interface range {{ client["device"] }}/1-{{ client["count"] }}
+ switchport mode access
+ switchport forbidden default-vlan
+exit
+{% endfor %}
+{% for trunk in ports["trunks"] %}
+default interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+ switchport mode trunk
+ switchport forbidden default-vlan
+exit
+{% endfor %}
+!
+{# Management #}
+vlan database
+ vlan {{ vlans["management"] }}
+exit
+{% for trunk in ports["trunks"] %}
+interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+ switchport trunk allowed vlan add {{ vlans["management"] }}
+exit
+{% endfor %}
+interface vlan {{ vlans["management"] }}
+ name Management
+ ip address {{ ip["management"]["addr"] }} {{ ip["management"]["mask"] }}
+exit
+ip default-gateway {{ ip["management"]["gateway"] }}
+!
+{# STP #}
+no erps
+spanning-tree bpdu filtering
+spanning-tree mode rstp
+{% for client in ports["clients"] %}
+interface range {{ client["device"] }}/1-{{ client["count"] }}
+ spanning-tree disable
+exit
+{% endfor %}
+{% for trunk in ports["trunks"] %}
+interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+ no spanning-tree disable
+ no spanning-tree portfast
+exit
+{% endfor %}
+!
+{# ERRDISABLE #}
+loopback-detection enable
+errdisable recovery cause loopback-detection
+errdisable recovery cause storm-control
+errdisable recovery interval 300
+{% for client in ports["clients"] %}
+interface range {{ client["device"] }}/1-{{ client["count"] }}
+ loopback-detection enable
+ storm-control broadcast enable
+ storm-control broadcast logging
+ storm-control broadcast level kbps 5000
+ storm-control broadcast shutdown
+ storm-control multicast enable
+ storm-control multicast level kbps 10000
+ storm-control unknown-unicast enable
+ storm-control unknown-unicast level kbps 5000 
+exit
+{% endfor %}
+{% for trunk in ports["trunks"] %}
+interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+ storm-control broadcast enable
+ storm-control broadcast logging
+ storm-control broadcast level kbps 50000
+ storm-control unknown-unicast enable
+ storm-control unknown-unicast level kbps 5000
+exit
+{% endfor %}
+!
+{# SECURITY #}
+{% for client in ports["clients"] %}
+interface range {{ client["device"] }}/1-{{ client["count"] }}
+ port security
+ port security mode max-addresses
+ port security max 1
+exit
+{% endfor %}
+!
+{# PPPoE #}
+vlan database
+ vlan {{ clients.first }}-{{ clients.last }}
+exit
+pppoe intermediate-agent
+pppoe intermediate-agent format-type access-node-id {{ hostname }}
+pppoe intermediate-agent timeout 600
+{% for client in ports["clients"] %}{% for port in range(1, client["count"] + 1) %}
+interface {{ client["device"] }}/{{ port }}
+ switchport access vlan {{ clients.vlan }}
+ pppoe intermediate-agent
+exit
+interface vlan {{ clients.vlan }}
+ name {{ client["device"] }}/{{ port }}_pppoe
+exit
+{% set clients.vlan = clients.vlan + 1 %}
+{% endfor %}{% endfor %}
+{% for trunk in ports["trunks"] %}
+interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+ switchport trunk allowed vlan add {{ clients.first }}-{{ clients.last }}
+ pppoe intermediate-agent
+ pppoe intermediate-agent trust
+exit
+{% endfor %}
+!
+{# Multicast #}
+bridge multicast filtering
+vlan database
+ vlan {{ vlans["multicast"] }}
+exit
+interface vlan {{ vlans["multicast"] }}
+ name Multicast
+exit
+ip igmp snooping
+{% for vlan in clients.list %}
+ip igmp snooping vlan {{ vlan }}
+{% endfor %}
+ip igmp snooping vlan {{ vlans["multicast"] }}
+ip igmp snooping vlan {{ vlans["multicast"] }} querier version 2
+{% for client in ports["clients"] %}
+interface range {{ client["device"] }}/1-{{ client["count"] }}
+ bridge multicast unregistered filtering
+ switchport access multicast-tv vlan {{ vlans["multicast"] }}
+exit
+{% endfor %}
+{% for trunk in ports["trunks"] %}
+interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+ bridge multicast unregistered filtering
+ switchport trunk allowed vlan add {{ vlans["multicast"] }}
+exit
+{% endfor %}
+!
+{# DHCP #}
+vlan database
+ vlan {{ vlans["dhcp"] }}
+exit
+ip dhcp relay enable
+ip dhcp relay address {{ ip["dhcp"]["server"] }}
+interface range vlan {{ clients.first }}-{{ clients.last }}
+ ip dhcp relay enable
+interface vlan {{ vlans["dhcp"] }}
+ name DHCP
+ ip address {{ ip["dhcp"]["addr"] }} {{ ip["dhcp"]["mask"] }}
+ ip dhcp relay enable
+exit
+ip dhcp snooping
+{% for vlan in clients.list %}
+ip dhcp snooping vlan {{ vlan }}
+{% endfor %}
+ip dhcp snooping vlan {{ vlans["dhcp"] }}
+{% for client in ports["clients"] %}
+interface range {{ client["device"] }}/1-{{ client["count"] }}
+ no ip dhcp snooping trust
+ ip dhcp relay enable
+exit
+{% endfor %}
+{% for trunk in ports["trunks"] %}
+interface range {{ trunk["device"] }}/1-{{ trunk["count"] }}
+ ip dhcp snooping trust
+ no ip dhcp relay enable
+ switchport trunk allowed vlan add {{ vlans["dhcp"] }}
+exit
+{% endfor %}
+!
+end
