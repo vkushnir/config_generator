@@ -1,0 +1,41 @@
+{% if clients is not defined %}
+{% set clients = namespace(count = ports_access|sum(attribute="count"), vlan=vlan_client) %}
+{% endif %}
+{# DHCP #}
+vlan database
+ vlan {{ vlan_dhcp }}
+exit
+ip dhcp relay enable
+ip dhcp relay address {{ ip_dhcp.addr }}
+ip dhcp snooping
+!
+{% for vlan in range(vlan_client, vlan_client + clients.count ) %}
+ip dhcp snooping vlan {{ vlan }}
+{% endfor %}
+ip dhcp snooping vlan {{ vlan_dhcp }}
+!
+interface range vlan {{ vlan_client }}-{{ vlan_client + clients.count - 1 }}
+ ip dhcp relay enable
+exit
+!
+interface vlan {{ vlan_dhcp }}
+ name DHCP
+ ip address {{ ip_dhcp.addr }} {{ ip_dhcp.mask }}
+ ip dhcp relay enable
+exit
+!
+{% for access in ports_access %}
+interface range {{ access.device }}/{{ access.port }}-{{ access.port + access.count - 1 }}
+ no ip dhcp snooping trust
+ ip dhcp relay enable
+exit
+{% endfor %}
+!
+{% for trunk in ports_trunk %}
+interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ ip dhcp snooping trust
+ no ip dhcp relay enable
+ switchport trunk allowed vlan add {{ vlan_dhcp }}
+exit
+{% endfor %}
+{# DHCP #}

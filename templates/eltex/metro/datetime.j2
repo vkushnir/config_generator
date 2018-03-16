@@ -1,0 +1,9 @@
+{# DATETIME #}
+clock timezone {{ timezone }}
+clock source sntp
+sntp unicast client enable
+sntp unicast client poll
+{% for ntp in ntp_servers %}
+sntp server {{ ntp.addr }} poll
+{% endfor %}
+{# DATETIME #}

@@ -1,0 +1,17 @@
+{# DEFAULTS #}
+{% for access in ports_access %}
+default interface range {{ access.device }}/{{ access.port }}-{{ access.port + access.count - 1 }}
+interface range {{ access.device }}/{{ access.port }}-{{ access.port + access.count - 1 }}
+ switchport mode access
+ switchport forbidden default-vlan
+exit
+{% endfor %}
+!
+{% for trunk in ports_trunk %}
+default interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ switchport mode trunk
+ switchport forbidden default-vlan
+exit
+{% endfor %}
+{# DEFAULTS #}

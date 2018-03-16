@@ -1,0 +1,31 @@
+{% if clients is not defined %}
+{% set clients = namespace(count = ports_access|sum(attribute="count"), vlan=vlan_client) %}
+{% endif %}
+{# PPPoE #}
+vlan database
+ vlan {{ vlan_client }}-{{ vlan_client + clients.count - 1 }}
+exit
+pppoe intermediate-agent
+pppoe intermediate-agent format-type access-node-id {{ hostname }}
+pppoe intermediate-agent timeout 600
+!
+{% for access in ports_access %}{% for client in range(access.port, access.port + access.count ) %}
+interface {{ access.device }}/{{ client }}
+ switchport access vlan {{ clients.vlan }}
+ pppoe intermediate-agent
+exit
+interface vlan {{ clients.vlan }}
+ name {{ access.device }}/{{ client }}_pppoe
+exit
+!
+{% set clients.vlan = clients.vlan + 1 %}
+{% endfor %}{% endfor %}
+!
+{% for trunk in ports_trunk %}
+interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ switchport trunk allowed vlan add {{ vlan_client }}-{{ vlan_client + clients.count - 1 }}
+ pppoe intermediate-agent
+ pppoe intermediate-agent trust
+exit
+{% endfor %}
+{# PPPoE #}

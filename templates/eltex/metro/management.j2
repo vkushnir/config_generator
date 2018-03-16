@@ -1,0 +1,18 @@
+{# MANAGEMENT #}
+vlan database
+ vlan {{ vlan_management }}
+exit
+!
+{% for trunk in ports_trunk %}
+interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ switchport trunk allowed vlan add {{ vlan_management }}
+exit
+{% endfor %}
+!
+interface vlan {{ vlan_management }}
+ name Management
+ ip address {{ ip_management.addr }} {{ ip_management.mask }}
+exit
+!
+ip default-gateway {{ ip_management.gateway }}
+{# MANAGEMENT #}

@@ -1,0 +1,6 @@
+{# LOGGING #}
+{% for log in log_servers %}
+logging host {{ log.addr }} description {{ log.descr }}
+{% endfor %}
+logging console warnings
+{# LOGGING #}

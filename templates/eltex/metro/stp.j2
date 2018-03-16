@@ -1,0 +1,18 @@
+{# STP #}
+no erps
+spanning-tree bpdu filtering
+spanning-tree mode rstp
+!
+{% for access in ports_access %}
+interface range {{ access.device }}/{{ access.port }}-{{ access.port + access.count - 1 }}
+ spanning-tree disable
+exit
+{% endfor %}
+!
+{% for trunk in ports_trunk %}
+interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ no spanning-tree disable
+ no spanning-tree portfast
+exit
+{% endfor %}
+{# STP #}

@@ -1,0 +1,33 @@
+{% if clients is not defined %}
+{% set clients = namespace(count = ports_access|sum(attribute="count"), vlan=vlan_client) %}
+{% endif %}
+{# MULTICAST #}
+bridge multicast filtering
+vlan database
+ vlan {{ vlan_multicast }}
+exit
+interface vlan {{ vlan_multicast }}
+ name Multicast
+exit
+!
+ip igmp snooping
+{% for vlan in range(vlan_client, vlan_client + clients.count ) %}
+ip igmp snooping vlan {{ vlan }}
+{% endfor %}
+ip igmp snooping vlan {{ vlan_multicast }}
+ip igmp snooping vlan {{ vlan_multicast }} querier version 2
+!
+{% for access in ports_access %}
+interface range {{ access.device }}/{{ access.port }}-{{ access.port + access.count - 1 }}
+ bridge multicast unregistered filtering
+ switchport access multicast-tv vlan {{ vlan_multicast }}
+exit
+{% endfor %}
+!
+{% for trunk in ports_trunk %}
+interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ bridge multicast unregistered filtering
+ switchport trunk allowed vlan add {{ vlan_multicast }}
+exit
+{% endfor %}
+{# MULTICAST #}

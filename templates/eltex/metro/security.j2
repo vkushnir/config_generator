@@ -1,0 +1,38 @@
+{# SECURITY #}
+loopback-detection enable
+errdisable recovery cause loopback-detection
+errdisable recovery cause storm-control
+errdisable recovery interval 300
+!
+{% for access in ports_access %}
+interface range {{ access.device }}/{{ access.port }}-{{ access.port + access.count - 1 }}
+ loopback-detection enable
+ storm-control broadcast enable
+ storm-control broadcast logging
+ storm-control broadcast level kbps 5000
+ storm-control broadcast shutdown
+ storm-control multicast enable
+ storm-control multicast level kbps 10000
+ storm-control unknown-unicast enable
+ storm-control unknown-unicast level kbps 5000 
+exit
+{% endfor %}
+!
+{% for trunk in ports_trunk %}
+interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ storm-control broadcast enable
+ storm-control broadcast logging
+ storm-control broadcast level kbps 50000
+ storm-control unknown-unicast enable
+ storm-control unknown-unicast level kbps 5000
+exit
+{% endfor %}
+!
+{% for access in ports_access %}
+interface range {{ access.device }}/{{ access.port }}-{{ access.port + access.count - 1 }}
+ port security
+ port security mode max-addresses
+ port security max 1
+exit
+{% endfor %}
+{# SECURITY #}

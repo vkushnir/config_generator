@@ -1,0 +1,27 @@
+{# SNMP #}
+no ip access-list extended snmp_ro
+ip access-list extended snmp_ro
+{% for permit in snmp_2c.ro.permit %}
+ permit ip any any {% if permit.network is defined %}
+    {{- permit.network }} {{ permit.wildcard }} {{ ip_management.addr }} 0.0.0.0
+  {% else %}
+    {{- permit.host }} 0.0.0.0 {{ ip_management.addr }} 0.0.0.0
+  {% endif -%} 
+{%- endfor %}
+exit
+!
+no ip access-list extended snmp_rw
+ip access-list extended snmp_rw
+{% for permit in snmp_2c.rw.permit %}
+ permit ip any any {% if permit.network is defined %}
+    {{- permit.network }} {{ permit.wildcard }} {{ ip_management.addr }} 0.0.0.0
+  {% else %}
+    {{- permit.host }} 0.0.0.0 {{ ip_management.addr }} 0.0.0.0
+  {% endif -%}
+{%- endfor %}
+exit
+!
+snmp-server server
+snmp-server community {{ snmp_2c.ro.community }} ro use-acl snmp_ro
+snmp-server community {{ snmp_2c.rw.community }} rw use-acl snmp_rw
+{# SNMP #}
