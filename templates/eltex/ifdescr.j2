@@ -1,0 +1,60 @@
+{% set ports = namespace() %}
+configure terminal
+!
+{# Access interfaces #}
+{% if ports_access is defined %}
+  {% for access in ports_access %}
+    {% if access.names is defined %}
+      {% set port = access.port %}
+	  {% for name in access.names %}
+interface {{ access.device }}/{{ port }}
+ description {{ name|replace(" ", "_") }}
+exit
+!
+        {% set port = port + 1 %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{# Trunk interfaces #}
+{% if ports_trunk is defined %}
+  {% for trunk in ports_trunk %}
+    {% if trunk.names is defined %}
+      {% set port = trunk.port %}
+	  {% for name in trunk.names %}
+interface {{ trunk.device }}/{{ port }}
+ description {{ name|replace(" ", "_") }}
+exit
+        {% set port = port + 1 %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{# Vlan interfaces #}
+{% if ports_vlan is defined %}
+  {% for vlan in ports_vlan %}
+    {% if vlan.names is defined %}
+      {% set port = vlan.port %}
+	  {% for name in vlan.names %}
+interface Vlan {{ port }}
+ description {{ name|replace(" ", "_") }}
+exit
+        {% set port = port + 1 %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{# Loopback interfaces #}
+{% if ports_loopback is defined %}
+  {% for loopback in ports_loopback %}
+    {% if loopback.names is defined %}
+      {% set port = loopback.port %}
+	  {% for name in loopback.names %}
+interface Loopback {{ port }}
+ description {{ name|replace(" ", "_") }}
+exit
+        {% set port = port + 1 %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
