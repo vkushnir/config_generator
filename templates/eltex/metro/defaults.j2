@@ -10,6 +10,7 @@ exit
 {% for trunk in ports_trunk %}
 default interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
 interface range {{ trunk.device }}/{{ trunk.port }}-{{ trunk.port + trunk.count - 1 }}
+ description TRUNK
  switchport mode trunk
  switchport forbidden default-vlan
 exit

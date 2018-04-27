@@ -24,4 +24,14 @@ exit
 snmp-server server
 snmp-server community {{ snmp_2c.ro.community }} ro use-acl snmp_ro
 snmp-server community {{ snmp_2c.rw.community }} rw use-acl snmp_rw
+!
+snmp-server enable traps errdisable
+snmp-server enable traps link-status
+snmp-server enable traps storm-control
+{% if snmp.location is defined %}
+snmp-server location {{ snmp.location }}
+{% endif %}
+{% if snmp.contact is defined %}
+snmp-server contact {{ snmp.contact }}
+{% endif %}
 {# SNMP #}

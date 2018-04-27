@@ -2,5 +2,6 @@
 {% for log in log_servers %}
 logging host {{ log.addr }} description {{ log.descr }}
 {% endfor %}
-logging console warnings
+logging console notifications
+logging file errors
 {# LOGGING #}

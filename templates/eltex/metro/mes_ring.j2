@@ -36,9 +36,9 @@ ip name-server {% for dns in dns_servers %} {{- dns.addr }} {% endfor %} {{- ip_
 {% include 'pppoe.j2' %}
 !
 {# MULTICAST #}
-{% include 'multicast.j2' %}
+{# {% include 'multicast.j2' %} #}
 !
 {# DHCP #}
-{% include 'dhcp.j2' %}
+{# {% include 'dhcp.j2' %} #}
 !
 end

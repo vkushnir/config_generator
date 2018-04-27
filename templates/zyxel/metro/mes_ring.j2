@@ -1,0 +1,41 @@
+{% set clients = namespace(count = ports_access|sum(attribute="count"), vlan=vlan_client) %}
+configure
+!
+{# DEFAULTS #}
+{# include 'defaults.j2' #}
+!
+hostname {{ hostname }}
+!
+ip name-server {{ dns_servers.addr }}
+!
+{# AAA #}
+{# include 'aaa.j2' #}
+!
+{# DATETIME #}
+{# include 'datetime.j2' #}
+!
+{# LOGGING #}
+{# include 'logging.j2' #}
+!
+{# SNMP #}
+{# include 'snmp.j2' #}
+!
+{# MANAGEMENT #}
+{# include 'management.j2' #}
+!
+{# STP #}
+{# include 'stp.j2' #}
+!
+{# SECURITY #}
+{# include 'security.j2' #}
+!
+{# PPPoE #}
+{# include 'pppoe.j2' #}
+!
+{# MULTICAST #}
+{# include 'multicast.j2' #}
+!
+{# DHCP #}
+{# include 'dhcp.j2' #}
+!
+end
